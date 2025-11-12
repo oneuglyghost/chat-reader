@@ -1,76 +1,130 @@
 import tmi from 'tmi.js';
 
-let client = null;
-let isRunning = false;
-let setGeneratedMessage;
-let voices = [];
+let client;
+let intervalId;
+let messages = [];
+let messageCount = 0; // count how many messages have been read
 
-// Load browser voices once they become available
-window.speechSynthesis.onvoiceschanged = () => {
-  voices = window.speechSynthesis.getVoices();
-};
+/**
+ * Log to console and React state
+ */
+function log(msg, setLog) {
+  console.log(msg);
+  if (setLog) setLog(prev => [...prev, msg]);
+}
 
-// Simple TTS function
-const speak = (text) => {
-  if (!text) return;
+/**
+ * Speak text using browser TTS
+ */
+function speak(text) {
+  if (!window.speechSynthesis) return;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = 1;
   utterance.pitch = 1;
-  utterance.voice = voices.find(v => v.name.includes('Google')) || voices[0];
   window.speechSynthesis.speak(utterance);
-};
-
-// Extract Twitch channel name from a prompt or URL
-function extractChannelName(input) {
-  if (!input) return null;
-  const match = input.match(/twitch\.tv\/([a-zA-Z0-9_]+)/i);
-  return match ? match[1] : input.trim();
 }
 
-// Start reading chat aloud
-export const startChatSimulation = (streamPrompt, _character, _players, _sampleChats, setMessageCallback) => {
-  if (isRunning) return;
-  const channel = extractChannelName(streamPrompt);
-  if (!channel) {
-    alert("Please enter a Twitch channel name or URL (e.g. twitch.tv/xqc)");
-    return;
+/**
+ * Start reading Twitch chat
+ */
+export function startChatSimulation(
+  channel,
+  _1,
+  _2,
+  _3,
+  setGeneratedMessage,
+  messageLimit = 10,
+  intervalMs = 30000,
+  setLog,
+  readEveryMessage = false
+) {
+  stopChatSimulation(setLog);
+  messages = [];
+  messageCount = 0;
+
+  const cleanChannel = channel.replace(/^https?:\/\/(www\.)?twitch\.tv\//, '').trim();
+
+  // Setup tmi.js client
+  client = new tmi.Client({
+    connection: { reconnect: true },
+    channels: [cleanChannel],
+  });
+
+  client.connect()
+    .then(() => log(`✅ Connected to Twitch chat: ${cleanChannel}`, setLog))
+    .catch(err => log(`❌ Error connecting to Twitch: ${err}`, setLog));
+
+  client.on('message', (channel, tags, message, self) => {
+    if (self) return;
+
+    const username = tags['display-name'] || 'Viewer';
+    const fullMsg = `${username}: ${message}`;
+    messages.push({ username, message });
+
+    if (messages.length > 1000) messages.shift();
+
+    if (readEveryMessage) {
+      messageCount++;
+
+      // Clear log if 6th or more message
+      if (messageCount > 5) {
+        if (setLog) setLog([]);
+        messageCount = 1; // reset counter for current message
+      }
+
+      setGeneratedMessage(fullMsg);
+      speak(message);
+      log(`🗣️ Speaking message: ${fullMsg}`, setLog);
+    }
+  });
+
+  // Interval mode
+  if (!readEveryMessage) {
+    intervalId = setInterval(() => {
+      if (messages.length === 0) return;
+
+      const available = Math.min(messages.length, messageLimit);
+      const randomIndex = Math.floor(Math.random() * available);
+      const selectedObj = messages[randomIndex];
+
+      if (selectedObj) {
+        messageCount++;
+
+        if (messageCount > 5) {
+          if (setLog) setLog([]);
+          messageCount = 1;
+        }
+
+        const fullText = `${selectedObj.username}: ${selectedObj.message}`;
+        setGeneratedMessage(fullText);
+        speak(selectedObj.message);
+        log(`🗣️ Speaking message: ${fullText}`, setLog);
+      }
+
+      messages = [];
+    }, intervalMs);
   }
 
-  setGeneratedMessage = setMessageCallback;
-  isRunning = true;
+  log(`📢 Ready to read messages from ${cleanChannel}`, setLog);
+}
 
-  client = new tmi.Client({
-    connection: { reconnect: true, secure: true },
-    channels: [channel],
-  });
+/**
+ * Stop reading chat and cleanup
+ */
+export function stopChatSimulation(setLog) {
+  if (intervalId) clearInterval(intervalId);
+  intervalId = null;
 
-  client.connect();
-
-  client.on('message', (chan, tags, message, self) => {
-    if (self || !isRunning) return;
-    const username = tags['display-name'] || 'Viewer';
-    const fullMessage = `${username}: ${message}`;
-
-    setGeneratedMessage(fullMessage);
-    speak(fullMessage);
-  });
-
-  client.on('connected', () => {
-    console.log(`✅ Connected to Twitch chat: ${channel}`);
-    setGeneratedMessage(`Connected to ${channel}'s chat!`);
-  });
-
-  client.on('disconnected', () => {
-    console.log('❌ Disconnected from Twitch chat');
-  });
-};
-
-// Stop reading chat
-export const stopChatSimulation = () => {
   if (client) {
-    client.disconnect();
+    try {
+      client.disconnect();
+      log('🔌 Disconnected from Twitch chat', setLog);
+    } catch (e) {
+      log(`⚠️ Error disconnecting Twitch client: ${e}`, setLog);
+    }
     client = null;
   }
-  isRunning = false;
-  window.speechSynthesis.cancel();
-};
+
+  messages = [];
+  messageCount = 0;
+}
