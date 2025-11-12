@@ -1,0 +1,19 @@
+.footer-container{
+    display: flex;
+    flex-direction: row;
+    list-style-type: none;
+    justify-content: center;
+    margin-top: 30px;
+    
+}
+.footer-container li {
+    margin-right: 30px;
+    
+}
+.footer-container a {
+    color: black;
+    font-size: 30px;
+}
+.footer-container a:hover {
+    color: lightblue;
+}

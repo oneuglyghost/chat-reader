@@ -1,0 +1,58 @@
+.portfolio{
+    background-color: lightblue;
+    margin-left: 60px;
+    margin-right: 60px;
+    padding-left: 10px;
+}
+.project-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center; 
+}
+
+.project {
+    position: relative;
+    width: 400px; 
+    max-height: 200px;
+    margin: 10px; 
+    overflow: hidden; 
+    border: 5px solid black;
+}
+
+.project-image {
+    width: 100%;
+    transition: filter 0.3s; 
+}
+
+.project-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex; 
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.8); 
+    text-align: center;
+    opacity: 0; /* Hide initially */
+    transition: opacity 0.3s; /* Add transition for smooth effect */
+}
+.project-overlay h3:hover {
+    cursor: pointer;
+}
+.project-overlay a {
+    font-size: 30px;
+}
+.project:hover .project-image {
+    filter: blur(5px); 
+}
+.project:hover {
+    border: 5px solid lightblue;
+}
+.project:hover .project-overlay {
+    opacity: 1; /* Show on hover */
+    
+}

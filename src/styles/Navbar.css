@@ -1,0 +1,17 @@
+.navbar {
+    text-align: right;
+    margin-top: 10px;
+    margin-left: 60px;
+    margin-right: 60px;
+    cursor: pointer;
+  }
+  
+.navbar-link {
+  margin-bottom: 5px;
+  padding: 10px;
+}
+  
+.navbar-link.active {
+  font-weight: bold;
+  color: lightblue;
+}
