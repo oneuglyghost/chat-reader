@@ -67,7 +67,7 @@ export function startChatSimulation(
       messageCount++;
 
       // Clear log if 6th or more message
-      if (messageCount > 5) {
+      if (messageCount > 10) {
         if (setLog) setLog([]);
         messageCount = 1; // reset counter for current message
       }
@@ -90,7 +90,7 @@ export function startChatSimulation(
       if (selectedObj) {
         messageCount++;
 
-        if (messageCount > 5) {
+        if (messageCount > 10) {
           if (setLog) setLog([]);
           messageCount = 1;
         }
@@ -128,3 +128,4 @@ export function stopChatSimulation(setLog) {
   messages = [];
   messageCount = 0;
 }
+ 
